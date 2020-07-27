@@ -6,17 +6,11 @@
             [async-worker.rabbitmq.queue :as queue]
             [async-worker.rabbitmq.retry :refer [with-retry]]))
 
-(defn- record-headers->map [record-headers]
-  (reduce (fn [header-map record-header]
-            (assoc header-map (.key record-header) (String. (.value record-header))))
-          {}
-          record-headers))
-
 (defn- properties-for-publish
-  [expiration headers]
+  [expiration]
   (let [props {:content-type "application/octet-stream"
                :persistent   true
-               :headers      (record-headers->map headers)}]
+               :headers      {}}]
     (if expiration
       (assoc props :expiration (str expiration))
       props)))
@@ -31,8 +25,8 @@
          (lb/publish ch
                      exchange
                      ""
-                     (nippy/freeze (dissoc message-payload :headers))
-                     (properties-for-publish expiration (:headers message-payload)))))
+                     (nippy/freeze message-payload)
+                     (properties-for-publish expiration))))
      (catch Throwable e
        (log/error "Publishing message to rabbitmq failed with error " (.getMessage e))
        (throw e)
@@ -41,3 +35,17 @@
 
 (defn publish-to-instant-queue [connection queue-name message]
   (publish connection (queue/exchange queue-name :instant) message))
+
+(defn publish-to-dead-queue [connection queue-name message]
+  (publish connection (queue/exchange queue-name :dead-letter) message))
+
+(defn- backoff-duration [retry-n timeout-ms]
+  (-> (Math/pow 2 retry-n)
+      (* timeout-ms)
+      int))
+
+(defn requeue [connection queue-name message retry-n retry-timeout-ms]
+  (publish connection
+           (queue/delay-exchange queue-name retry-n)
+           message
+           (backoff-duration retry-n retry-timeout-ms)))

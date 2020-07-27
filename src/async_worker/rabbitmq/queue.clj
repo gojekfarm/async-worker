@@ -52,11 +52,13 @@
     (create-and-bind-queue connection (queue queue-name queue-type) (exchange queue-name queue-type))))
 
 (defn- setup-delay-queues [connection queue-name retry-count]
+  "Setup separate queues for retries - all with dead-letter exchange set to the instant exchange
+   Each queue will be used for messages with a speicifc retry-n value"
   (doseq [n (range retry-count)]
     (create-and-bind-queue connection
                            (delay-queue queue-name n)
                            (delay-exchange queue-name n)
-                           (exchange queue-name :instant)))) ;; add dlx
+                           (exchange queue-name :instant))))
 
 (defn make-queues
   "Initializes the queues and exchanges required for message processing (instant),

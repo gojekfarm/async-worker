@@ -3,7 +3,8 @@
             [langohr.basic :as lb]
             [langohr.channel :as lch]
             [langohr.consumers :as lcons]
-            [taoensso.nippy :as nippy]))
+            [taoensso.nippy :as nippy]
+            [async-worker.rabbitmq.queue :as queue]))
 
 (defn convert-message
   "De-serializes the message payload (`payload`) using `nippy/thaw`"
@@ -14,16 +15,17 @@
   [ch delivery-tag]
   (lb/ack ch delivery-tag))
 
-(defn process-message-from-queue [ch meta payload processing-fn]
+(defn process-message-from-queue [ch meta payload handler-fn]
   (let [delivery-tag    (:delivery-tag meta)
         message-payload (convert-message payload)]
     (when message-payload
       (log/infof "Processing message [%s] from RabbitMQ " message-payload)
       (try
-        (log/debug "Calling processor-fn with the message-payload - " message-payload " with retry count - " (:retry-count message-payload))
-        (processing-fn message-payload)
+        (log/debug "Calling handler-fn with the message-payload - " message-payload " with retry count - " (:retry-count message-payload))
+        (handler-fn message-payload)
         (ack-message ch delivery-tag)
         (catch Exception e
+          (log/error e "Error while processing message-payload from RabbitMQ")
           (lb/reject ch delivery-tag true)
           (throw e)
           #_(sentry/report-error sentry-reporter e "Error while processing message-payload from RabbitMQ")
@@ -55,5 +57,5 @@
   (dotimes [_ (:worker-count config)]
     (start-subscriber* (lch/open connection)
                        prefetch-count
-                       queue-name ;; convert to instant
+                       (queue/queue queue-name ::instant)
                        handler-fn)))
