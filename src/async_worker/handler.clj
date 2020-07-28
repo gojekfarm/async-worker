@@ -22,4 +22,4 @@
                             (update job-params ::retry-n inc)
                             retry-n
                             retry-timeout-ms)
-          (producer/publish-to-dead-queue connection queue-name job-params))))))
+          (producer/move-to-dead-set connection queue-name job-params))))))

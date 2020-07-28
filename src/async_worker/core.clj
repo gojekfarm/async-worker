@@ -7,7 +7,17 @@
 
 (defonce rmq-conn (atom nil))
 
-(defn enqueue [args retry?])
+(defn enqueue
+  ([connection handler args]
+   (enqueue connection handler args false))
+  ([connection handler args retry?]
+   (producer/enqueue connection
+                     "trips"
+                     (merge args
+                            {::handler/handler handler}
+                            (when retry?
+                              {::handler/retry? true
+                               ::handler/retry-n 0})))))
 
 (defmethod handler/execute :prn
   [params]
@@ -26,13 +36,8 @@
   #_(conn/stop-connection @rmq-conn)
   (reset! rmq-conn (new-conn))
   (queue/make-queues @rmq-conn {:queue-name "trips" :retry-count 2})
-  (producer/publish-to-instant-queue @rmq-conn "trips" {:hello :world
-                                                        ::handler/retry-n 0
-                                                        ::handler/handler :prn})
-  (producer/publish-to-instant-queue @rmq-conn "trips" {:hello :world2
-                                                        ::handler/retry? true
-                                                        ::handler/retry-n 0
-                                                        ::handler/handler :prn})
+  (enqueue @rmq-conn :prn {:hello :world})
+  (enqueue @rmq-conn :prn {:hello :world2} true)
   (let [config {:worker-count 1
                 :prefetch-count 1
                 :queue-name "trips"

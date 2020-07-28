@@ -33,10 +33,10 @@
        #_(sentry/report-error sentry-reporter e
                             "Pushing message to rabbitmq failed, data: " message-payload)))))
 
-(defn publish-to-instant-queue [connection queue-name message]
+(defn enqueue [connection queue-name message]
   (publish connection (queue/exchange queue-name :instant) message))
 
-(defn publish-to-dead-queue [connection queue-name message]
+(defn move-to-dead-set [connection queue-name message]
   (publish connection (queue/exchange queue-name :dead-letter) message))
 
 (defn- backoff-duration [retry-n timeout-ms]
