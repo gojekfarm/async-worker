@@ -3,6 +3,7 @@
             [async-worker.rabbitmq.queue :as queue]
             [async-worker.rabbitmq.producer :as producer]
             [async-worker.rabbitmq.consumer :as consumer]
+            [async-worker.rabbitmq.dead-set :as dead-set]
             [async-worker.handler :as handler]))
 
 (defonce rmq-conn (atom nil))
@@ -43,4 +44,8 @@
                 :queue-name "trips"
                 :retry-count 2
                 :retry-timeout-ms 100}]
-    (consumer/start-subscribers @rmq-conn (handler/execute-with-retry @rmq-conn config) config)))
+    (consumer/start-subscribers @rmq-conn (handler/execute-with-retry @rmq-conn config) config)
+
+    (dead-set/view @rmq-conn "trips" 10)
+    (dead-set/delete @rmq-conn "trips" 1)
+    (dead-set/replay @rmq-conn "trips" 5)))
