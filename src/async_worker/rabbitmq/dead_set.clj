@@ -20,7 +20,7 @@
 (defn- read-without-ack [ch queue-name]
   (let [[meta payload] (lb/get ch (dead-set-queue queue-name) false)]
     (when (some? payload)
-      #_(lb/reject ch (:delivery-tag meta) true)
+      (lb/reject ch (:delivery-tag meta) true)
       (consumer/convert-message payload))))
 
 (defn get-dead-set-messages
@@ -29,12 +29,6 @@
          (doall (for [_ (range n)]
                   (read-without-ack ch queue-name))))
        (remove nil?)))
-
-#_(defn with-retry-options [payload]
-  (let [message (consumer/convert-message payload)]
-    (if (::handler/retry? message)
-      (assoc message {::handler/retry-n 0})
-      message)))
 
 ;; retry replaying messages?
 (defn replay
