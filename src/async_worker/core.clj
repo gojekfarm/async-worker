@@ -4,7 +4,8 @@
             [async-worker.rabbitmq.producer :as producer]
             [async-worker.rabbitmq.consumer :as consumer]
             [async-worker.rabbitmq.dead-set :as dead-set]
-            [async-worker.handler :as handler]))
+            [async-worker.handler :as handler]
+            [async-worker.rabbitmq.exchange :as e]))
 
 (defonce rmq-conn (atom nil))
 
@@ -24,18 +25,54 @@
   [params]
   (prn :executing-with-params params))
 
-(defn new-conn []
+(defn new-conn [{:keys [host port username password connection-timeout] :as config}]
+  (conn/start-connection {:host host
+                          :port            port
+                          :username        username
+                          :password        password
+                          :connection-timeout connection-timeout}
+                         prn))
+
+(defn new-local-conn []
   (conn/start-connection {:host "localhost"
                           :port            5672
-                          :prefetch-count  3
                           :username        "guest"
                           :password        "guest"
-                          :channel-timeout 2000}
+                          :connection-timeout 2000}
                          prn))
+
+
+
+;{:namespace  "trips"
+; :connection {:host               "localhost"
+;              :port               5672
+;              :username           "guest"
+;              :password           "guest"
+;              :connection-timeout 2000}
+; :worker     {:count          5
+;              :executor       executor
+;              :prefetch-count 1}
+; :jobs       {:auto-arrival {:retry-count      5
+;                             :retry-timeout-ms 100
+;                             :handler          handler-fn
+;                             }}}
+
+(defn init [{:keys [namespace connection worker jobs] :as config}]
+  (let [rabbitmq-conn (new-conn config)]
+    (e/declare-exchange rabbitmq-conn (e/exchange namespace))
+    (doseq [job jobs]
+      (let [{:keys [retry-count retry-timeout-ms]} job]
+        (queue/make-queues rabbitmq-conn {:namespace               namespace
+                                          :base-expiration-time-ms retry-timeout-ms
+                                          :max-retry-count         retry-count})))
+    (assoc connection
+      :connection rabbitmq-conn)))
 
 (comment
   #_(conn/stop-connection @rmq-conn)
-  (reset! rmq-conn (new-conn))
+  (reset! rmq-conn (new-local-conn))
+
+
   (queue/make-queues @rmq-conn {:queue-name "trips" :retry-count 2})
   (enqueue @rmq-conn :prn {:hello :world})
   (enqueue @rmq-conn :prn {:hello :world2} true)
