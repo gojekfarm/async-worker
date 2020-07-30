@@ -5,66 +5,62 @@
             [langohr.exchange :as le]
             [langohr.queue :as lq]
             [taoensso.nippy :as nippy]
-            [camel-snake-kebab.core :as csk]))
+            [camel-snake-kebab.core :as csk]
+            [async-worker.rabbitmq.exchange :as e]))
 
-(defn- create-queue [queue props ch]
+(defn- create-queue [ch queue props]
   (lq/declare ch queue {:durable true :arguments props :auto-delete false})
   (log/info "Created queue - " queue))
 
-(defn- declare-exchange [ch exchange]
-  (le/declare ch exchange "fanout" {:durable true :auto-delete false})
-  (log/info "Declared exchange - " exchange))
-
-(defn- bind-queue-to-exchange [ch queue exchange]
-  (lq/bind ch queue exchange)
-  (log/infof "Bound queue %s to exchange %s" queue exchange))
+(defn- bind-queue-to-exchange [ch queue-name exchange-name]
+  (lq/bind ch queue-name exchange-name {:routing-key queue-name})
+  (log/infof "Bound queue %s to exchange %s with routing key %s" queue-name exchange-name queue-name))
 
 (defn- create-and-bind-queue
-  ([connection queue-name exchange]
-   (create-and-bind-queue connection queue-name exchange nil))
-  ([connection queue-name exchange-name dead-letter-exchange]
-   (try
-     (let [props (if dead-letter-exchange
-                   {"x-dead-letter-exchange" dead-letter-exchange}
-                   {})]
-       (let [ch (lch/open connection)]
-         (create-queue queue-name props ch)
-         (declare-exchange ch exchange-name)
-         (bind-queue-to-exchange ch queue-name exchange-name)))
-     (catch Exception e
-       #_(sentry/report-error sentry-reporter e "Error while declaring RabbitMQ queues")
-       (throw e)))))
+  ([connection queue exchange]
+   (create-and-bind-queue connection queue exchange nil nil))
+  ([connection queue exchange dead-letter-exchange dead-letter-exchange-routing-key]
+   (let [properties (if dead-letter-exchange {"x-dead-letter-exchange" dead-letter-exchange
+                                              "x-dead-letter-routing-key" dead-letter-exchange-routing-key}
+                                             {})
+         ch (atom nil)]
+     (try
+       (reset! ch (lch/open connection))
+       (create-queue @ch queue properties)
+       (bind-queue-to-exchange @ch queue exchange)
+       (catch Exception e (throw e))
+       (finally (lch/close @ch))))))
 
-(defn queue [queue-name queue-type]
-  (apply format "%s_%s_queue" (map csk/->snake_case_string [queue-name queue-type])))
+(defn- exp-back-off [base-expiration-time retry-n] (Math/pow 2 retry-n)
+  (-> (Math/pow 2 retry-n)
+      (* base-expiration-time)
+      long))
 
-(defn exchange [queue-name queue-type]
-  (apply format "%s_%s_exchange" (map csk/->snake_case_string [queue-name queue-type])))
+(defn queue [namespace queue-type]
+  (apply format "%s_%s_queue" (map csk/->snake_case_string [namespace queue-type])))
 
-(defn delay-queue [queue-name retry-n]
-  (format "%s_delay_queue_%d" (csk/->snake_case_string queue-name) retry-n))
+(defn delay-queue [queue-name base-expiration-time retry-n]
+  (format "%s_delay_queue_%d" (csk/->snake_case_string queue-name) (exp-back-off base-expiration-time retry-n)))
 
-(defn delay-exchange [queue-name retry-n]
-  (format "%s_delay_exchage_%d" (csk/->snake_case_string queue-name) retry-n))
-
-(defn- setup-queue [connection queue-name queue-type]
+(defn- setup-queue [connection namespace queue-type]
   (let [queue-type (name queue-type)]
-    (create-and-bind-queue connection (queue queue-name queue-type) (exchange queue-name queue-type))))
+    (create-and-bind-queue connection (queue namespace queue-type) (e/exchange namespace))))
 
-(defn- setup-delay-queues [connection queue-name retry-count]
+(defn- setup-delay-queues [connection namespace base-expiration-time max-retry-count ]
   "Setup separate queues for retries - all with dead-letter exchange set to the instant exchange
    Each queue will be used for messages with a speicifc retry-n value"
-  (doseq [n (range retry-count)]
-    (create-and-bind-queue connection
-                           (delay-queue queue-name n)
-                           (delay-exchange queue-name n)
-                           (exchange queue-name :instant))))
+  (let [exchange-name (e/exchange namespace)]
+    (doseq [n (range max-retry-count)]
+      (create-and-bind-queue connection
+                             (delay-queue namespace base-expiration-time n)
+                             exchange-name exchange-name
+                             (queue namespace :instant)))))
 
 (defn make-queues
   "Initializes the queues and exchanges required for message processing (instant),
    retries (delay), and dead-set (dead-letter)"
-  [connection {:keys [queue-name retry-count] :as config}]
-  (setup-queue connection queue-name :instant)
-  (setup-queue connection queue-name :dead-letter)
+  [connection {:keys [namespace base-expiration-time-ms max-retry-count] :as config}]
+  (setup-queue connection namespace :instant)
+  (setup-queue connection namespace :dead-letter)
   ; also make linear backoff queues?
-  (setup-delay-queues connection queue-name retry-count))
+  (setup-delay-queues connection namespace base-expiration-time-ms max-retry-count))

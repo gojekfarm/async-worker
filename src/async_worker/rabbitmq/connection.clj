@@ -11,7 +11,7 @@
    :username
    :password
    :channel-timeout
-   :executor (optional) - ExecutorService to use for subsriber callbacks"
+   :executor (optional) - ExecutorService to use for subscriber callbacks"
   [config error-handler]
   (log/info "Connecting to RabbitMQ")
   (try

@@ -3,7 +3,7 @@
             [langohr.basic :as lb]
             [langohr.channel :as lch]
             [taoensso.nippy :as nippy]
-            [async-worker.rabbitmq.queue :as queue]
+            [async-worker.rabbitmq.exchange :as exc]
             [async-worker.rabbitmq.retry :refer [with-retry]]))
 
 (defn- properties-for-publish
@@ -34,10 +34,12 @@
                             "Pushing message to rabbitmq failed, data: " message-payload)))))
 
 (defn enqueue [connection queue-name message]
-  (publish connection (queue/exchange queue-name :instant) message))
+  ;; TO DO : add routing logic
+  (publish connection (exc/exchange queue-name) message))
 
 (defn move-to-dead-set [connection queue-name message]
-  (publish connection (queue/exchange queue-name :dead-letter) message))
+  ;; TO DO : adding routing logic
+  (publish connection (exc/exchange queue-name) message))
 
 (defn- backoff-duration [retry-n timeout-ms]
   (-> (Math/pow 2 retry-n)
@@ -45,7 +47,8 @@
       int))
 
 (defn requeue [connection queue-name message retry-n retry-timeout-ms]
+  ;; TO DO : add routing logic
   (publish connection
-           (queue/delay-exchange queue-name retry-n)
+           (exc/delay-exchange queue-name retry-n)
            message
            (backoff-duration retry-n retry-timeout-ms)))
