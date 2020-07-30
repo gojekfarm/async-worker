@@ -22,7 +22,7 @@
   ([connection queue exchange dead-letter-exchange dead-letter-exchange-routing-key]
    (let [properties (if dead-letter-exchange {"x-dead-letter-exchange" dead-letter-exchange
                                               "x-dead-letter-routing-key" dead-letter-exchange-routing-key}
-                                             {})
+                        {})
          ch (atom nil)]
      (try
        (reset! ch (lch/open connection))
@@ -46,7 +46,7 @@
   (let [queue-type (name queue-type)]
     (create-and-bind-queue connection (queue namespace queue-type) (e/exchange namespace))))
 
-(defn- setup-delay-queues [connection namespace base-expiration-time max-retry-count ]
+(defn- setup-delay-queues [connection namespace base-expiration-time max-retry-count]
   "Setup separate queues for retries - all with dead-letter exchange set to the instant exchange
    Each queue will be used for messages with a speicifc retry-n value"
   (let [exchange-name (e/exchange namespace)]

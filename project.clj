@@ -8,4 +8,5 @@
                  [org.clojure/tools.logging "1.1.0"]]
   :main async-worker.core
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:uberjar {:aot :all}}
+  :plugins [[lein-cljfmt "0.6.8"]])

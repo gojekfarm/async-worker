@@ -31,7 +31,7 @@
        (log/error "Publishing message to rabbitmq failed with error " (.getMessage e))
        (throw e)
        #_(sentry/report-error sentry-reporter e
-                            "Pushing message to rabbitmq failed, data: " message-payload)))))
+                              "Pushing message to rabbitmq failed, data: " message-payload)))))
 
 (defn enqueue [connection queue-name message]
   ;; TO DO : add routing logic

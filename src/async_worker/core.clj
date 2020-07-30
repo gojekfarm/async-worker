@@ -57,6 +57,7 @@
 ;                             :handler          handler-fn
 ;                             }}}
 
+
 (defn init [{:keys [namespace connection worker jobs] :as config}]
   (let [rabbitmq-conn (new-conn config)]
     (e/declare-exchange rabbitmq-conn (e/exchange namespace))
@@ -66,12 +67,11 @@
                                           :base-expiration-time-ms retry-timeout-ms
                                           :max-retry-count         retry-count})))
     (assoc connection
-      :connection rabbitmq-conn)))
+           :connection rabbitmq-conn)))
 
 (comment
   #_(conn/stop-connection @rmq-conn)
   (reset! rmq-conn (new-local-conn))
-
 
   (queue/make-queues @rmq-conn {:queue-name "trips" :retry-count 2})
   (enqueue @rmq-conn :prn {:hello :world})

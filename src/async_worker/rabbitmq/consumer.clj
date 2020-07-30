@@ -39,7 +39,7 @@
   "Returns consumer-tag"
   [ch prefetch-count queue-name handler-fn]
   (lb/qos ch prefetch-count)
-  (lcons/subscribe ch
+  (lcons/subscribe ch                                       ;; new thread
                    queue-name
                    (message-handler handler-fn)
                    {:handle-shutdown-signal-fn (fn [consumer_tag reason]
