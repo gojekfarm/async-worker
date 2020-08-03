@@ -6,49 +6,51 @@
             [async-worker.rabbitmq.exchange :as exc]
             [async-worker.rabbitmq.retry :refer [with-retry]]))
 
-(defn- properties-for-publish
-  [expiration]
-  (let [props {:content-type "application/octet-stream"
-               :persistent   true
-               :headers      {}}]
-    (if expiration
-      (assoc props :expiration (str expiration))
-      props)))
-
 (defn- publish
-  ([connection exchange message-payload]
-   (publish connection exchange message-payload nil))
-  ([connection exchange message-payload expiration]
+  ([connection exchange routing-key payload]
    (try
      (with-retry {:count 5 :wait 100}
        (with-open [ch (lch/open connection)]
          (lb/publish ch
                      exchange
-                     ""
-                     (nippy/freeze message-payload)
-                     (properties-for-publish expiration))))
+                     routing-key
+                     (nippy/freeze payload)
+                     {:content-type "application/octet-stream"
+                      :persistent   true})))
      (catch Throwable e
        (log/error "Publishing message to rabbitmq failed with error " (.getMessage e))
        (throw e)
-       #_(sentry/report-error sentry-reporter e
-                              "Pushing message to rabbitmq failed, data: " message-payload)))))
+       ))))
 
-(defn enqueue [connection queue-name message]
+(comment
+  "
+  message -> [meta, msg]
+  meta -> [retry info, handler info]
+
+
+  "
+  )
+
+
+
+
+
+(defn enqueue [connection exchange routing-key message]
   ;; TO DO : add routing logic
-  (publish connection (exc/exchange queue-name) message))
+  (publish connection exchange routing-key message))
 
-(defn move-to-dead-set [connection queue-name message]
-  ;; TO DO : adding routing logic
-  (publish connection (exc/exchange queue-name) message))
+;(defn move-to-dead-set [connection exchange message]
+;  ;; TO DO : adding routing logic
+;  (publish connection (exc/exchange queue-name) message))
 
-(defn- backoff-duration [retry-n timeout-ms]
-  (-> (Math/pow 2 retry-n)
-      (* timeout-ms)
-      int))
+;(defn- backoff-duration [retry-n timeout-ms]
+;  (-> (Math/pow 2 retry-n)
+;      (* timeout-ms)
+;      int))
 
-(defn requeue [connection queue-name message retry-n retry-timeout-ms]
-  ;; TO DO : add routing logic
-  (publish connection
-           (exc/delay-exchange queue-name retry-n)
-           message
-           (backoff-duration retry-n retry-timeout-ms)))
+;(defn requeue [connection queue-name message retry-n retry-timeout-ms]
+;  ;; TO DO : add routing logic
+;  (publish connection
+;           (exc/exchange queue-name)
+;           message
+;           (backoff-duration retry-n retry-timeout-ms)))
