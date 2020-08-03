@@ -40,8 +40,7 @@
                           :username        "guest"
                           :password        "guest"
                           :connection-timeout 2000
-                          :automatically-recover true
-                          }
+                          :automatically-recover true}
                          prn))
 
 
@@ -68,9 +67,9 @@
     (doseq [job jobs]
       (let [{:keys [retry-count retry-timeout-ms]} job]
         (q/create-and-bind-queues rabbitmq-conn {:namespace               namespace
-                                          :base-expiration-time-ms retry-timeout-ms
-                                          :max-retry-count         retry-count
-                                          :exchange exchange})))
+                                                 :base-expiration-time-ms retry-timeout-ms
+                                                 :max-retry-count         retry-count
+                                                 :exchange exchange})))
     (assoc connection
            :connection rabbitmq-conn)))
 
@@ -83,9 +82,9 @@
   (def retry-count 5)
   (def exchange (e/exchange namespace))
   (q/create-and-bind-queues @rmq-conn {:namespace               namespace
-                                           :base-expiration-time-ms retry-timeout-ms
-                                           :max-retry-count         retry-count
-                                           :exchange exchange})
+                                       :base-expiration-time-ms retry-timeout-ms
+                                       :max-retry-count         retry-count
+                                       :exchange exchange})
   ;; routing-key message
   (def que (q/queue namespace :instant))
   (def dque (q/delay-queue namespace 100))
@@ -106,8 +105,7 @@
                                :handler my-fn}
                       :my-job-2 {:retry-max 5
                                  :retry-timeout 2
-                                 :handler my-fn-2}}
-               })
+                                 :handler my-fn-2}}})
   (let [config {:worker-count 1
                 :prefetch-count 1
                 :queue-name "trips"

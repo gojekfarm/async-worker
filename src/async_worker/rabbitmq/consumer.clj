@@ -35,6 +35,7 @@
 ;                            ))))))
 ;
 
+
 (defn execute-with-retry [conn message-payload jobs]
   (let [meta-keys [:retry-n :max-retry-count :base-expiration-time :namespace :handler]
         meta-info (select-keys message-payload meta-keys)

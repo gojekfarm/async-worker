@@ -20,8 +20,7 @@
   ([connection queue exchange]
    (create-and-bind-queue connection queue exchange nil))
   ([connection queue exchange properties]
-   (let [
-         ;properties (if dead-letter-exchange {"x-dead-letter-exchange" dead-letter-exchange
+   (let [;properties (if dead-letter-exchange {"x-dead-letter-exchange" dead-letter-exchange
          ;                                     "x-dead-letter-routing-key" dead-letter-exchange-routing-key
          ;                                     "x-message-ttl" }
          ;               {})
@@ -38,8 +37,7 @@
       (* base-expiration-time)
       long))
 
-(defn next-exp-back-off [current-expiration-time base-expiration-time retry-n max-retry-n]
-  )
+(defn next-exp-back-off [current-expiration-time base-expiration-time retry-n max-retry-n])
 
 (defn queue [namespace queue-type]
   (apply format "%s_%s_queue" (map csk/->snake_case_string [namespace queue-type])))

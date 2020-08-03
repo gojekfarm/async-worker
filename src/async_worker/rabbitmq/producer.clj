@@ -19,8 +19,7 @@
                       :persistent   true})))
      (catch Throwable e
        (log/error "Publishing message to rabbitmq failed with error " (.getMessage e))
-       (throw e)
-       ))))
+       (throw e)))))
 
 (comment
   "
@@ -28,12 +27,7 @@
   meta -> [retry info, handler info]
 
 
-  "
-  )
-
-
-
-
+  ")
 
 (defn enqueue [connection exchange routing-key message]
   ;; TO DO : add routing logic
