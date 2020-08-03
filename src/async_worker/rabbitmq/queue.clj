@@ -18,11 +18,13 @@
 
 (defn- create-and-bind-queue
   ([connection queue exchange]
-   (create-and-bind-queue connection queue exchange nil nil))
-  ([connection queue exchange dead-letter-exchange dead-letter-exchange-routing-key]
-   (let [properties (if dead-letter-exchange {"x-dead-letter-exchange" dead-letter-exchange
-                                              "x-dead-letter-routing-key" dead-letter-exchange-routing-key}
-                        {})
+   (create-and-bind-queue connection queue exchange nil))
+  ([connection queue exchange properties]
+   (let [
+         ;properties (if dead-letter-exchange {"x-dead-letter-exchange" dead-letter-exchange
+         ;                                     "x-dead-letter-routing-key" dead-letter-exchange-routing-key
+         ;                                     "x-message-ttl" }
+         ;               {})
          ch (atom nil)]
      (try
        (reset! ch (lch/open connection))
@@ -36,31 +38,35 @@
       (* base-expiration-time)
       long))
 
+(defn next-exp-back-off [current-expiration-time base-expiration-time retry-n max-retry-n]
+  )
+
 (defn queue [namespace queue-type]
   (apply format "%s_%s_queue" (map csk/->snake_case_string [namespace queue-type])))
 
-(defn delay-queue [queue-name base-expiration-time retry-n]
-  (format "%s_delay_queue_%d" (csk/->snake_case_string queue-name) (exp-back-off base-expiration-time retry-n)))
+(defn delay-queue [queue-name expiration-time]
+  (format "%s_delay_queue_%d" (csk/->snake_case_string queue-name) expiration-time))
 
-(defn- setup-queue [connection namespace queue-type]
-  (let [queue-type (name queue-type)]
-    (create-and-bind-queue connection (queue namespace queue-type) (e/exchange namespace))))
+(defn- setup-queue [connection namespace queue-type exchange]
+  (create-and-bind-queue connection (queue namespace (name queue-type)) exchange))
 
-(defn- setup-delay-queues [connection namespace base-expiration-time max-retry-count]
+(defn- setup-delay-queues [connection namespace base-expiration-time max-retry-count exchange]
   "Setup separate queues for retries - all with dead-letter exchange set to the instant exchange
    Each queue will be used for messages with a speicifc retry-n value"
-  (let [exchange-name (e/exchange namespace)]
-    (doseq [n (range max-retry-count)]
+  (doseq [n (range max-retry-count)]
+    (let [expiration-time (exp-back-off base-expiration-time n)]
       (create-and-bind-queue connection
-                             (delay-queue namespace base-expiration-time n)
-                             exchange-name exchange-name
-                             (queue namespace :instant)))))
+                             (delay-queue namespace expiration-time)
+                             exchange
+                             {"x-dead-letter-exchange"    exchange
+                              "x-dead-letter-routing-key" (queue namespace :instant)
+                              "x-message-ttl"             (* 1000 expiration-time)}))))
 
-(defn make-queues
+(defn create-and-bind-queues
   "Initializes the queues and exchanges required for message processing (instant),
    retries (delay), and dead-set (dead-letter)"
-  [connection {:keys [namespace base-expiration-time-ms max-retry-count] :as config}]
-  (setup-queue connection namespace :instant)
-  (setup-queue connection namespace :dead-letter)
+  [connection {:keys [namespace base-expiration-time-ms max-retry-count exchange] :as config}]
+  (setup-queue connection namespace :instant exchange)
+  (setup-queue connection namespace :dead-letter exchange)
   ; also make linear backoff queues?
-  (setup-delay-queues connection namespace base-expiration-time-ms max-retry-count))
+  (setup-delay-queues connection namespace base-expiration-time-ms max-retry-count exchange))
