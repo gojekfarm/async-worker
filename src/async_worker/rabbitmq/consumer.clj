@@ -62,6 +62,7 @@
       (log/infof "Processing message [%s] from RabbitMQ " message-payload)
       (try
         (log/debug "Calling handler-fn with the message-payload - " message-payload " with retry count - " (:retry-count message-payload))
+        (prn payload)
         (execute-with-retry ch message-payload jobs)
         ;; the user only provide the execute method, so the execute-with-retry is implemented here
         ;(comment
@@ -125,9 +126,9 @@
    :worker-count - The number of subscribers to initialize
    :prefetch-count
    :queue-name - as defined for the producer, internal queue-names will be prefixed with this supplied name"
-  [connection {:keys [namespace worker jobs] :as config}]
-  (dotimes [_ (:count worker)]
+  [connection {:keys [namespace worker-count jobs] :as config}]
+  (dotimes [_ worker-count]
     (start-subscriber* (lch/open connection)                ; new channel for each worker
-                       1                                    ; prefetch count = 1 for consistency
+                       1                                    ; prefetch count = 1
                        (queue/queue namespace :instant)
                        jobs)))

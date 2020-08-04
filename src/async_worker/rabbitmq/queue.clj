@@ -32,7 +32,7 @@
        (catch Exception e (throw e))
        (finally (lch/close @ch))))))
 
-(defn- exp-back-off [base-expiration-time retry-n] (Math/pow 2 retry-n)
+(defn exp-back-off [base-expiration-time retry-n] (Math/pow 2 retry-n)
   (-> (Math/pow 2 retry-n)
       (* base-expiration-time)
       long))
@@ -64,6 +64,7 @@
   "Initializes the queues and exchanges required for message processing (instant),
    retries (delay), and dead-set (dead-letter)"
   [connection {:keys [namespace base-expiration-time-ms max-retry-count exchange] :as config}]
+  (prn config)
   (setup-queue connection namespace :instant exchange)
   (setup-queue connection namespace :dead-letter exchange)
   ; also make linear backoff queues?
