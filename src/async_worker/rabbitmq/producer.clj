@@ -1,10 +1,10 @@
 (ns async-worker.rabbitmq.producer
-  (:require [clojure.tools.logging :as log]
+  (:require [async-worker.rabbitmq.exchange :as exc]
+            [async-worker.utils.retry :refer [with-retry]]
+            [clojure.tools.logging :as log]
             [langohr.basic :as lb]
             [langohr.channel :as lch]
-            [taoensso.nippy :as nippy]
-            [async-worker.rabbitmq.exchange :as exc]
-            [async-worker.rabbitmq.retry :refer [with-retry]]))
+            [taoensso.nippy :as nippy]))
 
 (defn- publish
   ([connection exchange routing-key payload]

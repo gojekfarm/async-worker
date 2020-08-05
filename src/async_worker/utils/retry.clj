@@ -1,4 +1,4 @@
-(ns async-worker.rabbitmq.retry)
+(ns async-worker.utils.retry)
 
 (defn with-retry* [retry-count wait fn-to-retry]
   (let [res (try
