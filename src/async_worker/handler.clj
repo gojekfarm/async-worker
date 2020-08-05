@@ -1,31 +1,24 @@
 (ns async-worker.handler
   (:require [clojure.tools.logging :as log]
-            [async-worker.rabbitmq.producer :as producer]
-            [async-worker.rabbitmq.exchange :as exc]))
+            [async-worker.rabbitmq.producer :as producer]))
 
-;(defmulti execute
-;  "Multimethod for defining execute handlers for enqueues jobs
-;   Jobs are dispatched based on the :handler value in params "
-;  (fn [params] (::handler params)))
-;
-;(defmethod execute :default [{handler ::handler :as params}]
-;  (prn (str params))
-;  (log/error (format "Failed to execute job for %s. No handler registered. params: %s" handler params))
-;  (throw (ex-info "Failed to execute job" params)))
-;
-;;enqueue [connection exchange routing-key meta message]
-;
-;(defn execute-with-retry [connection {:keys [namespace retry-timeout-ms retry-count] :as config}]
-;  (fn [{retry? ::retry? retry-n ::retry-n :as job-params}]
-;    (try
-;      (execute job-params)
-;      (catch Exception e
-;        (if (and retry? (< retry-n retry-count))
-;          (producer/enqueue connection
-;                            (exc/exchange namespace)
-;                            "trips_delay_queue_100"         ;; constant delay queue
-;                            {:my-message 10 ::retry-n 1 ::retry true}
-;                            ;(update job-params ::retry-n inc)
-;                            ;retry-n
-;                            ;retry-timeout-ms
-;                            ))))))
+(defn- default-handler [{:keys [job-name args] :as message}]
+  (log/error "Failed to find a handler for %s with args: %s" job-name args))
+
+(defn- handler [jobs job-name]
+  (get-in jobs [job-name :handler-fn]))
+
+(defn execute-with-retry [connection namespace jobs]
+  (fn [{:keys [args job-name retry-max current-iteration retry-timeout-ms] :as message}]
+    (try
+      (if-let [handler-fn (handler jobs job-name)]
+        (handler-fn args)
+        (default-handler message))
+      (catch Exception e
+        (if (and retry-max (< current-iteration retry-max))
+          (producer/requeue connection
+                            namespace
+                            (update message :current-iteration inc)
+                            current-iteration
+                            retry-timeout-ms)
+          (producer/move-to-dead-set connection namespace message))))))

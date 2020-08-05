@@ -15,19 +15,15 @@
    :channel-timeout
    :automatically-recover
    :executor (optional) - ExecutorService to use for subscriber callbacks"
-  [config error-handler]
+  [config]
   (log/info "Connecting to RabbitMQ")
-  (try
-    (let [connection (rmq/connect config)]
-      (doto connection
-        (.addShutdownListener
-         (reify ShutdownListener
-           (shutdownCompleted [_ cause]
-             (when-not (.isInitiatedByApplication cause)
-               (log/error cause "RabbitMQ connection shut down due to error")))))))
-    (catch Exception e
-      (error-handler e "Error while starting RabbitMQ connection")
-      (throw e))))
+  (let [connection (rmq/connect config)]
+    (doto connection
+      (.addShutdownListener
+       (reify ShutdownListener
+         (shutdownCompleted [_ cause]
+           (when-not (.isInitiatedByApplication cause)
+             (log/error cause "RabbitMQ connection shut down due to error"))))))))
 
 (defn stop-connection [conn]
   (rmq/close conn)

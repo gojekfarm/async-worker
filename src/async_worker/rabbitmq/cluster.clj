@@ -1,5 +1,5 @@
 (ns async-worker.rabbitmq.cluster
-  (:require [async-worker.utils.retry :as retry]
+  (:require [async-worker.utils :as retry]
             [clojure.string :as s]
             [clojure.tools.logging :as log]
             [langohr.channel :as lch]
@@ -19,7 +19,7 @@
   (let [hosts-vec (s/split (:hosts cluster-config) #",")
         hosts     (atom hosts-vec)]
     (retry/with-retry {:count      (count @hosts)
-                 :wait       50}
+                       :wait       50}
       (let [host (first @hosts)
             _    (swap! hosts rest)
             ha-policy (get-default-ha-policy cluster-config)]
