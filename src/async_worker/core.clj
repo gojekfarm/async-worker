@@ -47,24 +47,12 @@
                        :retry-max         (:retry-max job-config)
                        :retry-timeout-ms  (:retry-timeout-ms job-config)})))
 
-
-
-
-
-(defn new-local-conn []
-  (conn/start-connection {:host "localhost"
-                          :port            5672
-                          :username        "guest"
-                          :password        "guest"
-                          :connection-timeout 2000
-                          :automatically-recover true
-                          :executor (Executors/newFixedThreadPool 16)}
-                         prn))
-
-
 (comment
-  (defn my-fn [payload] (prn (str "my-fn : " payload)))
-  (defn my-fn-2 [payload] (prn (str "my-fn-2 : " payload)))
+  (defn my-fn [payload]
+    (prn {:my-fn payload :at (System/currentTimeMillis)})
+    (throw (Exception. "Retry")))
+  (defn my-fn-2 [payload]
+    (prn {:my-fn-2 payload}))
 
   (def config {:namespace "trips"
              :rabbitmq  {:host               "localhost"
@@ -75,11 +63,11 @@
                          :subscriber-count   5}
              :executor   (Executors/newFixedThreadPool 5)
              :jobs      {:my-job   {:retry-max        5
-                                    :retry-timeout-ms 1
-                                    :handler          my-fn}
+                                    :retry-timeout-ms 1000
+                                    :handler-fn          my-fn}
                          :my-job-2 {:retry-max     5
                                     :retry-timeout-ms 2
-                                    :handler       my-fn-2}}})
+                                    :handler-fn       my-fn-2}}})
 
 
 
