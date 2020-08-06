@@ -3,7 +3,8 @@
             [async-worker.rabbitmq.producer :as producer]))
 
 (defn- default-handler [{:keys [job-name args] :as message}]
-  (log/error "Failed to find a handler for %s with args: %s" job-name args))
+  (log/error "Failed to find a handler for %s with args: %s" job-name args)
+  (throw (ex-info "Failed to find job handler" {:message message})))
 
 (defn- handler [jobs job-name]
   (get-in jobs [job-name :handler-fn]))
