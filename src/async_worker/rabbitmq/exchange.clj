@@ -6,7 +6,7 @@
             [langohr.queue :as lq]
             [taoensso.nippy :as nippy]
             [camel-snake-kebab.core :as csk])
-  (:refer-clojure :exclude [name]))
+  (:refer-clojure :exclude [name declare]))
 
 (defn declare [connection exchange]
   (with-open [ch (lch/open connection)]
