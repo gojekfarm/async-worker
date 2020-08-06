@@ -4,14 +4,15 @@
             [async-worker.rabbitmq.producer :as producer]
             [async-worker.rabbitmq.consumer :as consumer]
             [async-worker.rabbitmq.dead-set :as dead-set]
+            [async-worker.rabbitmq.exchange :as exchange]
             [async-worker.handler :as handler]
-            [async-worker.rabbitmq.exchange :as exchange])
+            [async-worker.rabbitmq.cluster :as cluster])
   (:import [java.util.concurrent Executors]))
 
 (defonce rmq-conn (atom nil))
 
-(defn new-conn [{:keys [host port username password connection-timeout executor] :as config}]
-  (conn/start-connection {:host                  host
+(defn new-conn [{:keys [hosts port username password connection-timeout executor] :as config}]
+  (conn/start-connection {:hosts                 hosts
                           :port                  port
                           :username              username
                           :password              password
@@ -34,6 +35,7 @@
                                 namespace
                                 (:subscriber-count rabbitmq)
                                 (handler/execute-with-retry rabbitmq-conn namespace jobs))
+    (cluster/set-ha-policy rabbitmq namespace)
     (assoc config :connection rabbitmq-conn)))
 
 
@@ -55,19 +57,19 @@
     (prn {:my-fn-2 payload}))
 
   (def config {:namespace "trips"
-             :rabbitmq  {:host               "localhost"
-                         :port               5672
-                         :username           "guest"
-                         :password           "guest"
-                         :connection-timeout 2000
-                         :subscriber-count   5}
-             :executor   (Executors/newFixedThreadPool 5)
-             :jobs      {:my-job   {:retry-max        5
-                                    :retry-timeout-ms 1000
-                                    :handler-fn          my-fn}
-                         :my-job-2 {:retry-max     5
-                                    :retry-timeout-ms 2
-                                    :handler-fn       my-fn-2}}})
+               :rabbitmq  {:hosts              ["localhost"]
+                           :port               5672
+                           :username           "guest"
+                           :password           "guest"
+                           :admin-port         15672
+                           :connection-timeout 2000
+                           :subscriber-count   5}
+               :jobs        {:my-job   {:retry-max        5
+                                        :retry-timeout-ms 1000
+                                        :handler-fn       my-fn}
+                             :my-job-2 {:retry-max        5
+                                        :retry-timeout-ms 2
+                                        :handler-fn       my-fn-2}}})
 
 
 

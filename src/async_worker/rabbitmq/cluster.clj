@@ -15,20 +15,18 @@
       {:ha-mode ha-mode :ha-sync-mode ha-sync-mode}
       {:ha-mode ha-mode :ha-sync-mode ha-sync-mode :ha-params ha-params})))
 
-(defn set-ha-policy [queue-name exchange-name cluster-config]
-  (let [hosts-vec (s/split (:hosts cluster-config) #",")
-        hosts     (atom hosts-vec)]
-    (retry/with-retry {:count      (count @hosts)
-                       :wait       50}
-      (let [host (first @hosts)
-            _    (swap! hosts rest)
+(defn set-ha-policy [cluster-config namespace]
+  (let [hosts (atom (:hosts cluster-config))]
+    (retry/with-retry {:count (count @hosts)
+                       :wait  50}
+      (let [host      (first @hosts)
+            _         (swap! hosts rest)
             ha-policy (get-default-ha-policy cluster-config)]
         (binding [lh/*endpoint* (str "http://" host ":" (get cluster-config :admin-port 15672))
                   lh/*username* (:username cluster-config)
                   lh/*password* (:password cluster-config)]
-          (log/info "applying HA policies to queue: " queue-name)
-          (log/info "applying HA policies to exchange: " exchange-name)
-          (lh/set-policy "/" (str queue-name "_ha_policy")
+          (log/info "applying HA policies to all queues and exchanges of namespace:" namespace)
+          (lh/set-policy "/" (str namespace "_ha_policy")
                          {:apply-to   "all"
-                          :pattern    (str "^" queue-name "|" exchange-name "$")
+                          :pattern    (str "^" namespace ".*")
                           :definition ha-policy}))))))
