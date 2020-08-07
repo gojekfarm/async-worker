@@ -24,7 +24,7 @@
   (when (realized? p)
     (throw (ex-info "Message returned during publish" @p))))
 
-(defn- publish
+(defn publish
   "Tries to publish the message reliably. Retries 5 times with 100ms wait; throws exception if unsuccessful
 
   Unrouted messges are returned with ack and are handled by the return-handler.

@@ -3,16 +3,15 @@
             [langohr.core :as rmq])
   (:import [com.rabbitmq.client ShutdownListener Address ListAddressResolver]))
 
-;; DONE
-
 (defn start-connection
   "Starts a rabbitmq connection
    config expects:
-   :host
+   :hosts
    :port
    :username
    :password
-   :channel-timeout
+   :admin-port
+   :connection-timeout
    :automatically-recover
    :executor (optional) - ExecutorService to use for subscriber callbacks"
   [config]
