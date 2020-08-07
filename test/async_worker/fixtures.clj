@@ -3,7 +3,8 @@
             [async-worker.rabbitmq.exchange :as exchange]
             [langohr.queue :as lq]
             [langohr.exchange :as le]
-            [langohr.channel :as lch]))
+            [langohr.channel :as lch]
+            [clojure.string :as s]))
 
 (def ^:dynamic *connection* nil)
 
@@ -11,8 +12,14 @@
 
 (def ^:dynamic *queue* nil)
 
+(defn rmq-host []
+  (let [env-val (System/getenv (str "RABBITMQ_HOST"))]
+    (if-not (s/blank? env-val)
+      env-val
+      "localhost")))
+
 (def connection-config
-  {:hosts              ["localhost"]
+  {:hosts              [(rmq-host)]
    :port               5672
    :username           "guest"
    :password           "guest"
