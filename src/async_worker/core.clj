@@ -5,9 +5,11 @@
             [async-worker.rabbitmq.consumer :as consumer]
             [async-worker.rabbitmq.exchange :as exchange]
             [async-worker.rabbitmq.producer :as producer]
-            [async-worker.rabbitmq.queue :as queue]))
+            [async-worker.rabbitmq.queue :as queue]
+            [async-worker.spec :as spec]))
 
 (defn start [{:keys [namespace rabbitmq executor jobs] :as config}]
+  (spec/validate-config config)
   (let [rabbitmq-conn (conn/start-connection
                        (merge rabbitmq {:executor executor :automatically-recover true}))
         exchange-name (exchange/name namespace)]
