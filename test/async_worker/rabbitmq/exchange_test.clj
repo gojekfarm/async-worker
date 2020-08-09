@@ -20,4 +20,7 @@
   (testing "declare creates an exchange"
     (let [exchange-name (str (gensym "async-worker-test-exchange-"))]
       (exchange/declare (f/get-connection) exchange-name)
-      (is (true? (exchange-exists? exchange-name))))))
+      (is (true? (exchange-exists? exchange-name)))
+
+      (with-open [ch (lch/open (f/get-connection))]
+        (le/delete ch exchange-name)))))

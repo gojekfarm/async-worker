@@ -32,6 +32,14 @@
 
 (defn get-queue [] *queue*)
 
+(defn delete-queue [q]
+  (with-open [ch (lch/open (get-connection))]
+    (lq/delete ch q)))
+
+(defn delete-exchange [e]
+  (with-open [ch (lch/open (get-connection))]
+        (le/delete ch e)))
+
 (defn with-rabbitmq-connection [f]
   (binding [*connection* (connection/start-connection connection-config)]
     (f)
@@ -42,8 +50,7 @@
     (exchange/declare (get-connection) exchange-name)
     (binding [*exchange* exchange-name]
       (f)
-      (with-open [ch (lch/open (get-connection))]
-        (le/delete ch exchange-name)))))
+      (delete-exchange exchange-name))))
 
 (defn with-bound-queue [f]
   (let [queue-name (str (gensym "async-test-queue-"))]
@@ -52,5 +59,4 @@
       (lq/bind ch queue-name (get-exchange))
       (binding [*queue* queue-name]
         (f)
-        (with-open [ch (lch/open (get-connection))]
-          (lq/delete ch queue-name))))))
+        (delete-queue queue-name)))))

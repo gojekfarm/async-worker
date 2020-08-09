@@ -17,10 +17,6 @@
        (catch Exception e
          false)))
 
-(defn delete-queue [q]
-  (with-open [ch (lch/open (f/get-connection))]
-    (lq/delete ch q)))
-
 (deftest init-test
   (testing "queue init creates the required instant and dead-letter queues"
     (let [namespace (str (gensym "async-test-ns-"))]
@@ -28,8 +24,8 @@
       (queue-exists? (queue/name namespace :instant))
       (queue-exists? (queue/name namespace :dead-letter))
 
-      (delete-queue (queue/name namespace :instant))
-      (delete-queue (queue/name namespace :dead-letter)))))
+      (f/delete-queue (queue/name namespace :instant))
+      (f/delete-queue (queue/name namespace :dead-letter)))))
 
 (deftest setup-delay-queues-test
   (testing "creates the required delay queues"
@@ -41,4 +37,4 @@
       (queue/setup-delay-queues (f/get-connection) namespace (f/get-exchange) retry-max retry-ms)
       (is (every? true? (map queue-exists? expected-queues)))
 
-      (dorun (map delete-queue expected-queues)))))
+      (dorun (map f/delete-queue expected-queues)))))
