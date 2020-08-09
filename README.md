@@ -4,7 +4,31 @@ An asynchronous job worker library for Clojure
 
 ## Installation
 
+```clojure
+[com.gojek/async-worker "0.0.1"]
+```
+
 ## Usage
+
+Initialize workers with `async-worker.core/start`
+(See below for example)
+
+Use a common `namespace` to create a group of worker instances
+
+If supplied, optional `executor` will be used instead of the rabbitmq default subscriber executor.
+
+Omit `retry-max` and `retry-timeout-ms` if the retries are not required for a job.
+Only exponential backoff strategy is available for retries.
+
+job-names must be keywords. Handler functions should expect a single argument
+
+`start` returns a map with a connection. Pass this map to all core functions as first argument.
+
+`async-worker.core/enqueue` accepts the config, job-name and the single argument for handler function.
+
+`enqueue` will wait upto 1000ms to ensure that the job was enqueued and will throw an exception if otherwise.
+
+The core ns also contains `dead-set:view`,`dead-set:delete`, and `dead-set:replay` functions. Please note that replayed messages from dead-set are not retried during execution.
 
 ## Examples
 
@@ -49,6 +73,5 @@ Hello world example:
 ;; stop the worker
 (async-worker/stop @worker)
 ```
-
 
 ## Contributing

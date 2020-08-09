@@ -1,3 +1,8 @@
 # Introduction to async-worker
 
-TODO: write [great documentation](http://jacobian.org/writing/what-to-write/)
+TODO: Write about:
+
+# Queus and exchanges
+# Retry mechanism
+# Dead set
+# Reliable publishing (return and nacks)
