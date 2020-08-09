@@ -27,9 +27,7 @@
         (catch Exception e
           (log/error e "Error while processing message-payload from RabbitMQ")
           (lb/reject ch delivery-tag true)
-          (throw e)
-          #_(sentry/report-error sentry-reporter e "Error while processing message-payload from RabbitMQ")
-          #_(metrics/increment-count ["rabbitmq-message" "process"] "failure" {:topic_name (name topic-entity)}))))))
+          (throw e))))))
 
 (defn- message-handler [handler-fn]
   (fn [ch meta ^bytes payload]

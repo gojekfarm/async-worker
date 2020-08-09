@@ -6,6 +6,7 @@
             [async-worker.rabbitmq.exchange :as exchange]
             [async-worker.rabbitmq.producer :as producer]
             [async-worker.rabbitmq.queue :as queue]
+            [async-worker.rabbitmq.dead-set :as dead-set]
             [async-worker.spec :as spec]))
 
 (defn start [{:keys [namespace rabbitmq executor jobs] :as config}]
@@ -41,3 +42,12 @@
                        :current-iteration 0
                        :retry-max         (:retry-max job-config)
                        :retry-timeout-ms  (:retry-timeout-ms job-config)})))
+
+(defn dead-set:view [config n]
+  (dead-set/view (:connection config) (:namespace config) n))
+
+(defn dead-set:replay [config n]
+  (dead-set/replay (:connection config) (:namespace config) n))
+
+(defn dead-set:delete [config n]
+  (dead-set/delete (:connection config) (:namespace config) n))

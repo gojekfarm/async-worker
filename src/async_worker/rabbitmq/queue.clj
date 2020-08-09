@@ -26,7 +26,6 @@
        (create-queue ch queue properties)
        (bind-queue-to-exchange ch queue exchange))
      (catch Exception e
-       #_(sentry/report-error sentry-reporter e "Error while declaring RabbitMQ queues")
        (throw e)))))
 
 (defn name [namespace queue-type]
