@@ -2,6 +2,7 @@
   (:require [async-worker.utils :as retry]
             [clojure.string :as s]
             [clojure.tools.logging :as log]
+            [camel-snake-kebab.core :as csk]
             [langohr.channel :as lch]
             [langohr.exchange :as le]
             [langohr.http :as lh]
@@ -16,7 +17,8 @@
       {:ha-mode ha-mode :ha-sync-mode ha-sync-mode :ha-params ha-params})))
 
 (defn set-ha-policy [cluster-config namespace]
-  (let [hosts (atom (:hosts cluster-config))]
+  (let [hosts     (atom (:hosts cluster-config))
+        namespace (csk/->snake_case_string namespace)]
     (retry/with-retry {:count (count @hosts)
                        :wait  50}
       (let [host      (first @hosts)
