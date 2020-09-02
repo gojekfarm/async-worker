@@ -22,7 +22,7 @@
       (handler-fn {:job-name :job})
       (is (true? @job-fn-called?))))
 
-  (testing "moves message to dead set if job handler throws exception and retry is not configured"
+  (testing "moves message to dead set if job handler throws exception"
     (let [job-fn            (fn [_] (throw (Exception. "test")))
           handler-fn        (handler/execute-with-retry nil nil {:job {:handler-fn job-fn}})
           moved-to-deadset? (atom false)]
@@ -30,18 +30,34 @@
         (handler-fn {:job-name :job})
         (is (true? @moved-to-deadset?)))))
 
-  (testing "requeues message if job handler throws exception and retry is configured"
-    (let [job-fn            (fn [_] (throw (Exception. "test")))
+  (testing "moves message to dead set if job handler returns :fail"
+    (let [job-fn            (fn [_] :fail)
+          handler-fn        (handler/execute-with-retry nil nil {:job {:handler-fn job-fn}})
+          moved-to-deadset? (atom false)]
+      (with-redefs [producer/move-to-dead-set (fn [& _] (reset! moved-to-deadset? true))]
+        (handler-fn {:job-name :job})
+        (is (true? @moved-to-deadset?)))))
+
+  (testing "requeues message if job handler returns :retry and retry is configured"
+    (let [job-fn            (fn [_] :retry)
           handler-fn        (handler/execute-with-retry nil nil {:job {:handler-fn job-fn}})
           requeued-message (atom nil)]
       (with-redefs [producer/requeue (fn [_ _ msg _ _] (reset! requeued-message msg))]
         (handler-fn {:job-name :job :current-iteration 0 :retry-max 3})
         (is (= 1 (:current-iteration @requeued-message))))))
 
-  (testing "moves message to dead set if job handler throws exception and retry is exhausted"
-    (let [job-fn            (fn [_] (throw (Exception. "test")))
+  (testing "moves message to deadset if job handler returns :retry and retry is exhausted"
+    (let [job-fn            (fn [_] :retry)
           handler-fn        (handler/execute-with-retry nil nil {:job {:handler-fn job-fn}})
           moved-to-deadset? (atom false)]
       (with-redefs [producer/move-to-dead-set (fn [& _] (reset! moved-to-deadset? true))]
         (handler-fn {:job-name :job :current-iteration 3 :retry-max 3})
-        (is (true? @moved-to-deadset?))))))
+        (is (true? @moved-to-deadset?)))))
+
+  (testing "retries message if job handler throws exception"
+    (let [job-fn            (fn [_] (throw (Exception. "test")))
+          handler-fn        (handler/execute-with-retry nil nil {:job {:handler-fn job-fn}})
+          requeued-message (atom nil)]
+      (with-redefs [producer/requeue (fn [_ _ msg _ _] (reset! requeued-message msg))]
+        (handler-fn {:job-name :job :current-iteration 0 :retry-max 3})
+        (is (= 1 (:current-iteration @requeued-message)))))))
