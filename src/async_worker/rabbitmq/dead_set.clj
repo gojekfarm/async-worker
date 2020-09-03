@@ -20,17 +20,18 @@
 (defn- read-without-ack [ch queue-name]
   (let [[meta payload] (lb/get ch queue-name false)]
     (when (some? payload)
-      (lb/reject ch (:delivery-tag meta) true)
-      (consumer/convert-message payload))))
+      [(consumer/convert-message payload) (:delivery-tag meta)])))
+
+(defn- reject-all [ch delivery-tags]
+  (run! #(lb/reject ch % true) (remove nil? delivery-tags)))
 
 (defn- get-dead-set-messages
   [connection queue-name n]
-  (->> (with-open [ch (lch/open connection)]
-         (doall (for [_ (range n)]
-                  (read-without-ack ch queue-name))))
-       (remove nil?)))
+  (with-open [ch (lch/open connection)]
+    (let [messages-and-tags (mapv (fn [_] (read-without-ack ch queue-name)) (range n))]
+      (reject-all ch (map second messages-and-tags))
+      (remove nil? (map first messages-and-tags)))))
 
-;; retry replaying messages?
 (defn replay
   "Replay messages from dead-set by moving them to the instant queue"
   [connection namespace n]
@@ -42,7 +43,8 @@
   "Deletes messages from dead queue"
   [connection namespace n]
   (log/debugf "Deleting %d number of messages from dead-letter-queue for %s" n namespace)
-  (process-dead-set-messages connection (dead-set-queue namespace) n (fn [payload])))
+  (process-dead-set-messages connection (dead-set-queue namespace) n
+                             (fn [payload] (log/debugf "Deleting from dead-letter-queue for %s: %s" namespace payload))))
 
 (defn view
   "View messages in dead-set without removing them"

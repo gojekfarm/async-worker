@@ -30,6 +30,18 @@ job-names must be keywords. Handler functions should expect a single argument
 
 The core ns also contains `dead-set:view`,`dead-set:delete`, and `dead-set:replay` functions. Please note that replayed messages from dead-set are not retried during execution.
 
+## Retries and Deadset
+
+Return `:retry` from the handler to retry a message.
+
+Return `:fail` from the handler to immediately move a message to deadset.
+
+Any other return values is treated as a success.
+
+Uncaught exceptions in handler will trigger retries.
+
+Messages with retries exhausted will be moved to the deadset.
+
 ## Examples
 
 Hello world example:
@@ -48,7 +60,7 @@ Hello world example:
 
 (def executor (java.util.concurrent.Executors/newFixedThreadPool 5))
 
-(def config {:namespace "trips"
+(def config {:namespace "my-app-jobs"
              :rabbitmq  {:hosts              ["localhost"]
                          :port               5672
                          :username           "guest"
