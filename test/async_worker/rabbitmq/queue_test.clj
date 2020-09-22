@@ -13,9 +13,9 @@
     ;; throws exception if queue doesn't exist
     (with-open [ch (lch/open (f/get-connection))]
       (lq/declare-passive ch queue-name))
-       true
-       (catch Exception e
-         false)))
+    true
+    (catch Exception e
+      false)))
 
 (deftest init-test
   (testing "queue init creates the required instant and dead-letter queues"

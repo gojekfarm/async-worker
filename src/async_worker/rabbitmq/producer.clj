@@ -27,43 +27,44 @@
 
   Nack-ed messages are handled by wait-for-confirms-or-die.
   Throws exception if the messages are not acked within `confirmation-timeout-ms`"
-  ([connection exchange routing-key message-payload]
-   (publish connection exchange routing-key message-payload true))
-  ([connection exchange routing-key message-payload confirm-publish?]
-   (u/with-retry {:count 5 :wait 100}
-     (let [return-promise (promise)
-           return-handler (lb/return-listener (fn [reply-code reply-text exchange routing-key properties body]
-                                                (deliver return-promise {:reply-code reply-code
-                                                                         :reply-text reply-text})))]
-       (with-open [ch (lch/open connection)]
-         (.addReturnListener ch return-handler)
-         (lconf/select ch)
-         (lb/publish ch
-                     exchange
-                     routing-key
-                     (nippy/freeze message-payload)
-                     properties-for-publish)
-         (when confirm-publish?
-           (lconf/wait-for-confirms-or-die ch confirmation-timeout-ms))
-         (die-if-message-returned return-promise))))))
+  [connection exchange routing-key message-payload confirm-publish?]
+  (u/with-retry {:count 5 :wait 100}
+    (let [return-promise (promise)
+          return-handler (lb/return-listener (fn [reply-code reply-text exchange routing-key properties body]
+                                               (deliver return-promise {:reply-code reply-code
+                                                                        :reply-text reply-text})))]
+      (with-open [ch (lch/open connection)]
+        (.addReturnListener ch return-handler)
+        (lconf/select ch)
+        (lb/publish ch
+                    exchange
+                    routing-key
+                    (nippy/freeze message-payload)
+                    properties-for-publish)
+        (when confirm-publish?
+          (lconf/wait-for-confirms-or-die ch confirmation-timeout-ms))
+        (die-if-message-returned return-promise)))))
 
 (defn enqueue
   ([connection namespace message]
    (enqueue connection namespace message false))
-  ([connection namespace message confirms-publish?]
+  ([connection namespace message confirm-publish?]
    (publish connection
             (exchange/name namespace)
             (queue/name namespace :instant)
-            message confirms-publish?)))
+            message
+            confirm-publish?)))
 
 (defn move-to-dead-set [connection namespace message]
   (publish connection
            (exchange/name namespace)
            (queue/name namespace :dead-letter)
-           message))
+           message
+           true))
 
 (defn requeue [connection namespace message current-iteration retry-timeout-ms]
   (publish connection
            (exchange/name namespace)
            (queue/delay-queue-name namespace (u/backoff-duration current-iteration retry-timeout-ms))
-           message))
+           message
+           true))

@@ -15,9 +15,9 @@
       (producer/publish (f/get-connection)
                         (f/get-exchange)
                         ""
-                        message)))
+                        message true)))
 
-  (testing "publish freezes message and sets ttl"
+  (testing "publish freezes message"
     (let [message {:hello :world}
           args (atom {})]
       (with-redefs [lb/publish (fn [ch exchange routing-key payload properties]
@@ -26,10 +26,9 @@
                           (f/get-exchange)
                           ""
                           message
-                          100)
+                          true)
 
-        (is (= message (nippy/thaw (:payload @args))))
-        (is (= "100" (get-in @args [:properties :expiration]))))))
+        (is (= message (nippy/thaw (:payload @args)))))))
 
   (testing "publish throws exception for unroutable message"
     (let [message {:hello :world}]
@@ -38,4 +37,4 @@
                                      (f/get-exchange)
                                      "wrong-routing-key"
                                      message
-                                     100))))))
+                                     true))))))

@@ -26,7 +26,7 @@ job-names must be keywords. Handler functions should expect a single argument
 
 `async-worker.core/enqueue` accepts the config, job-name and the single argument for handler function.
 
-`enqueue` will wait upto 1000ms to ensure that the job was enqueued and will throw an exception if otherwise.
+If `enable-confirms` is true in the rabbitmq part of config, `enqueue` will wait upto 1000ms to ensure that the job was enqueued and will throw an exception if otherwise.
 
 The core ns also contains `dead-set:view`,`dead-set:delete`, and `dead-set:replay` functions. Please note that replayed messages from dead-set are not retried during execution.
 
@@ -67,8 +67,8 @@ Hello world example:
                          :password           "guest"
                          :admin-port         15672
                          :connection-timeout 2000
-                         :subscriber-count   5 
-                         :publisher-confirm-enabled false}
+                         :subscriber-count   5
+                         :enable-confirms    false}
              :executor  executor
              :jobs      {:job-1 {:retry-max        5
                                  :retry-timeout-ms 1000

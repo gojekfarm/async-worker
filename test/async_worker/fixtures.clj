@@ -38,7 +38,7 @@
 
 (defn delete-exchange [e]
   (with-open [ch (lch/open (get-connection))]
-        (le/delete ch e)))
+    (le/delete ch e)))
 
 (defn with-rabbitmq-connection [f]
   (binding [*connection* (connection/start-connection connection-config)]

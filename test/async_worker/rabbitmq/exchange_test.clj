@@ -12,9 +12,9 @@
     ;; throws exception if exchange doesn't exist
     (with-open [ch (lch/open (f/get-connection))]
       (le/declare-passive ch exchange-name))
-       true
-       (catch Exception e
-         false)))
+    true
+    (catch Exception e
+      false)))
 
 (deftest exchange-test
   (testing "declare creates an exchange"
