@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.0.5] - 2020-09-22
+- Do not use select mode on channel when confirms are not required
+
 ## [0.0.4] - 2020-09-22
 - Make publisher confirms optional
 
