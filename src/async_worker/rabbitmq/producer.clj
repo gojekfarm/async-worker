@@ -10,15 +10,11 @@
 
 (def confirmation-timeout-ms 1000)
 
-(defn- properties-for-publish
-  [expiration]
-  (let [props {:content-type "application/octet-stream"
-               :persistent   true
-               :mandatory    true
-               :headers      {}}]
-    (if expiration
-      (assoc props :expiration (str expiration))
-      props)))
+(def properties-for-publish
+  {:content-type "application/octet-stream"
+   :persistent   true
+   :mandatory    true
+   :headers      {}})
 
 (defn- die-if-message-returned [p]
   (when (realized? p)
@@ -32,8 +28,8 @@
   Nack-ed messages are handled by wait-for-confirms-or-die.
   Throws exception if the messages are not acked within `confirmation-timeout-ms`"
   ([connection exchange routing-key message-payload]
-   (publish connection exchange routing-key message-payload nil))
-  ([connection exchange routing-key message-payload expiration]
+   (publish connection exchange routing-key message-payload true))
+  ([connection exchange routing-key message-payload confirm-publish?]
    (u/with-retry {:count 5 :wait 100}
      (let [return-promise (promise)
            return-handler (lb/return-listener (fn [reply-code reply-text exchange routing-key properties body]
@@ -46,15 +42,19 @@
                      exchange
                      routing-key
                      (nippy/freeze message-payload)
-                     (properties-for-publish expiration))
-         (lconf/wait-for-confirms-or-die ch confirmation-timeout-ms)
+                     properties-for-publish)
+         (when confirm-publish?
+           (lconf/wait-for-confirms-or-die ch confirmation-timeout-ms))
          (die-if-message-returned return-promise))))))
 
-(defn enqueue [connection namespace message]
-  (publish connection
-           (exchange/name namespace)
-           (queue/name namespace :instant)
-           message))
+(defn enqueue
+  ([connection namespace message]
+   (enqueue connection namespace message false))
+  ([connection namespace message confirms-publish?]
+   (publish connection
+            (exchange/name namespace)
+            (queue/name namespace :instant)
+            message confirms-publish?)))
 
 (defn move-to-dead-set [connection namespace message]
   (publish connection

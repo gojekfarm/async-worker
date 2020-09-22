@@ -34,14 +34,15 @@
   (conn/stop-connection (:connection worker)))
 
 (defn enqueue [config job-name args]
-  (let [job-config (get-in config [:jobs job-name])]
+  (let [confirm-publish? (get-in config [:rabbitmq :publisher-confirm-enabled])
+        job-config (get-in config [:jobs job-name])]
     (producer/enqueue (:connection config)
                       (:namespace config)
                       {:job-name          job-name
                        :args              args
                        :current-iteration 0
                        :retry-max         (:retry-max job-config)
-                       :retry-timeout-ms  (:retry-timeout-ms job-config)})))
+                       :retry-timeout-ms  (:retry-timeout-ms job-config)} confirm-publish?)))
 
 (defn dead-set:view [config n]
   (dead-set/view (:connection config) (:namespace config) n))

@@ -67,7 +67,8 @@ Hello world example:
                          :password           "guest"
                          :admin-port         15672
                          :connection-timeout 2000
-                         :subscriber-count   5}
+                         :subscriber-count   5 
+                         :publisher-confirm-enabled false}
              :executor  executor
              :jobs      {:job-1 {:retry-max        5
                                  :retry-timeout-ms 1000
