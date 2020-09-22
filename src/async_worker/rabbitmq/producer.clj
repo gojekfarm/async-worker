@@ -25,7 +25,7 @@
 
   Unrouted messges are returned with ack and are handled by the return-handler.
 
-  Nack-ed messages are handled by wait-for-confirms-or-die.
+  Nack-ed messages are handled by wait-for-confirms-or-die if publisher confirms are enabled.
   Throws exception if the messages are not acked within `confirmation-timeout-ms`"
   [connection exchange routing-key message-payload confirm-publish?]
   (u/with-retry {:count 5 :wait 100}
@@ -35,7 +35,8 @@
                                                                         :reply-text reply-text})))]
       (with-open [ch (lch/open connection)]
         (.addReturnListener ch return-handler)
-        (lconf/select ch)
+        (when confirm-publish?
+          (lconf/select ch))
         (lb/publish ch
                     exchange
                     routing-key
