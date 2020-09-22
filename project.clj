@@ -1,4 +1,4 @@
-(defproject com.gojek/async-worker "0.0.3"
+(defproject com.gojek/async-worker "0.0.4"
   :description "An asynchronous job worker library for Clojure"
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.novemberain/langohr "5.1.0"
