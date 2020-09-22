@@ -5,7 +5,7 @@ An asynchronous job worker library for Clojure, implemented on RabbitMQ
 ## Installation
 
 ```clojure
-[com.gojek/async-worker "0.0.3"]
+[com.gojek/async-worker "0.0.4"]
 ```
 
 ## Usage
