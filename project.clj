@@ -5,7 +5,8 @@
                   :exclusions [org.clojure/clojure]]
                  [com.taoensso/nippy "2.14.0"]
                  [camel-snake-kebab "0.4.1"]
-                 [org.clojure/tools.logging "1.1.0"]]
+                 [org.clojure/tools.logging "1.1.0"]
+                 [pool "0.2.1"]]
   :main async-worker.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}}

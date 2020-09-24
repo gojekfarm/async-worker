@@ -11,16 +11,16 @@ An asynchronous job worker library for Clojure, implemented on RabbitMQ
 ## Usage
 
 Initialize workers with `async-worker.core/start`
-(See below for example)
+(See below for example).
 
-Use a common `namespace` to create a group of worker instances
+Use a common `namespace` to create a group of worker instances.
 
 If supplied, optional `executor` will be used instead of the rabbitmq default subscriber executor.
 
 Omit `retry-max` and `retry-timeout-ms` if the retries are not required for a job.
 Only exponential backoff strategy is available for retries.
 
-job-names must be keywords. Handler functions should expect a single argument
+job-names must be keywords. Handler functions should expect a single argument.
 
 `start` returns a map with a connection. Pass this map to all core functions as first argument.
 
@@ -29,6 +29,8 @@ job-names must be keywords. Handler functions should expect a single argument
 If `enable-confirms` is true in the rabbitmq part of config, `enqueue` will wait upto 1000ms to ensure that the job was enqueued and will throw an exception if otherwise.
 
 The core ns also contains `dead-set:view`,`dead-set:delete`, and `dead-set:replay` functions. Please note that replayed messages from dead-set are not retried during execution.
+
+`channel-pool-size` determines the min-idle size of pool of channels used for job enqueues. Default value is 10.
 
 ## Retries and Deadset
 
@@ -68,7 +70,8 @@ Hello world example:
                          :admin-port         15672
                          :connection-timeout 2000
                          :subscriber-count   5
-                         :enable-confirms    false}
+                         :enable-confirms    false
+			 :channel-pool-size  5}
              :executor  executor
              :jobs      {:job-1 {:retry-max        5
                                  :retry-timeout-ms 1000

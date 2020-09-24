@@ -6,8 +6,9 @@
 (deftest basic-features-test
   (let [config              {:namespace (str (gensym "async-test-"))
                              :rabbitmq  (merge f/connection-config
-                                               {:subscriber-count 3
-                                                :enable-confirms  true})
+                                               {:subscriber-count  3
+                                                :enable-confirms   true
+                                                :channel-pool-size 5})
                              :jobs      {:retry-job   {:retry-max        3
                                                        :retry-timeout-ms 10
                                                        :handler-fn       identity}

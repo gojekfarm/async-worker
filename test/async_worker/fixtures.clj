@@ -4,9 +4,12 @@
             [langohr.queue :as lq]
             [langohr.exchange :as le]
             [langohr.channel :as lch]
-            [clojure.string :as s]))
+            [clojure.string :as s]
+            [async-worker.rabbitmq.channel :as channel]))
 
 (def ^:dynamic *connection* nil)
+
+(def ^:dynamic *channel-pool* nil)
 
 (def ^:dynamic *exchange* nil)
 
@@ -28,6 +31,8 @@
 
 (defn get-connection [] *connection*)
 
+(defn get-channel-pool [] *channel-pool*)
+
 (defn get-exchange [] *exchange*)
 
 (defn get-queue [] *queue*)
@@ -44,6 +49,10 @@
   (binding [*connection* (connection/start-connection connection-config)]
     (f)
     (connection/stop-connection *connection*)))
+
+(defn with-channel-pool [f]
+  (binding [*channel-pool* (channel/create-pool (get-connection) 5)]
+    (f)))
 
 (defn with-rabbitmq-exchange [f]
   (let [exchange-name (str (gensym "async-test-exchange-"))]

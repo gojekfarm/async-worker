@@ -1,12 +1,11 @@
 (ns async-worker.rabbitmq.producer
-  (:require [clojure.tools.logging :as log]
-            [langohr.basic :as lb]
-            [langohr.channel :as lch]
-            [langohr.confirm :as lconf]
-            [taoensso.nippy :as nippy]
-            [async-worker.rabbitmq.queue :as queue]
+  (:require [async-worker.rabbitmq.channel :as channel]
             [async-worker.rabbitmq.exchange :as exchange]
-            [async-worker.utils :as u]))
+            [async-worker.rabbitmq.queue :as queue]
+            [async-worker.utils :as u]
+            [langohr.basic :as lb]
+            [langohr.confirm :as lconf]
+            [taoensso.nippy :as nippy]))
 
 (def confirmation-timeout-ms 1000)
 
@@ -27,13 +26,13 @@
 
   Nack-ed messages are handled by wait-for-confirms-or-die if publisher confirms are enabled.
   Throws exception if the messages are not acked within `confirmation-timeout-ms`"
-  [connection exchange routing-key message-payload confirm-publish?]
+  [channel-pool exchange routing-key message-payload confirm-publish?]
   (u/with-retry {:count 5 :wait 100}
-    (let [return-promise (promise)
-          return-handler (lb/return-listener (fn [reply-code reply-text exchange routing-key properties body]
-                                               (deliver return-promise {:reply-code reply-code
-                                                                        :reply-text reply-text})))]
-      (with-open [ch (lch/open connection)]
+    (channel/with-channel channel-pool [ch]
+      (let [return-promise (promise)
+            return-handler (lb/return-listener (fn [reply-code reply-text exchange routing-key properties body]
+                                                 (deliver return-promise {:reply-code reply-code
+                                                                          :reply-text reply-text})))]
         (.addReturnListener ch return-handler)
         (when confirm-publish?
           (lconf/select ch))
@@ -47,24 +46,24 @@
         (die-if-message-returned return-promise)))))
 
 (defn enqueue
-  ([connection namespace message]
-   (enqueue connection namespace message false))
-  ([connection namespace message confirm-publish?]
-   (publish connection
+  ([channel-pool namespace message]
+   (enqueue channel-pool namespace message false))
+  ([channel-pool namespace message confirm-publish?]
+   (publish channel-pool
             (exchange/name namespace)
             (queue/name namespace :instant)
             message
             confirm-publish?)))
 
-(defn move-to-dead-set [connection namespace message]
-  (publish connection
+(defn move-to-dead-set [channel-pool namespace message]
+  (publish channel-pool
            (exchange/name namespace)
            (queue/name namespace :dead-letter)
            message
            true))
 
-(defn requeue [connection namespace message current-iteration retry-timeout-ms]
-  (publish connection
+(defn requeue [channel-pool namespace message current-iteration retry-timeout-ms]
+  (publish channel-pool
            (exchange/name namespace)
            (queue/delay-queue-name namespace (u/backoff-duration current-iteration retry-timeout-ms))
            message

@@ -10,34 +10,34 @@
 (defn- handler [jobs job-name]
   (get-in jobs [job-name :handler-fn]))
 
-(defn process-result [connection
+(defn process-result [channel-pool
                       namespace
                       {:keys [retry-max current-iteration retry-timeout-ms] :as message}
                       result]
   (cond
     (= :retry result)
     (if (and retry-max (< current-iteration retry-max))
-      (producer/requeue connection
+      (producer/requeue channel-pool
                         namespace
                         (update message :current-iteration inc)
                         current-iteration
                         retry-timeout-ms)
-      (producer/move-to-dead-set connection namespace message))
+      (producer/move-to-dead-set channel-pool namespace message))
 
     (= :fail result)
-    (producer/move-to-dead-set connection namespace message)
+    (producer/move-to-dead-set channel-pool namespace message)
 
     :else
     :nil))
 
-(defn execute-with-retry [connection namespace jobs]
+(defn execute-with-retry [channel-pool namespace jobs]
   (fn [{:keys [args job-name retry-max current-iteration retry-timeout-ms] :as message}]
     (let [handler-fn (handler jobs job-name)]
       (try
         (->> (if (some? handler-fn)
                (handler-fn args)
                (default-handler message))
-             (process-result connection namespace message))
+             (process-result channel-pool namespace message))
         (catch Exception e
           (log/warnf e "Uncaught exception in job handler for %s" job-name)
-          (process-result connection namespace message :retry))))))
+          (process-result channel-pool namespace message :retry))))))

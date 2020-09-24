@@ -10,6 +10,7 @@
             [async-worker.rabbitmq.producer :as producer]))
 
 (use-fixtures :each (join-fixtures [f/with-rabbitmq-connection
+                                    f/with-channel-pool
                                     f/with-rabbitmq-exchange
                                     f/with-bound-queue]))
 
@@ -25,7 +26,7 @@
   (testing "converts the message and calls the handler-fn"
     (let [message {:hello :world}
           consumed-messages (atom [])]
-      (producer/publish (f/get-connection) (f/get-exchange) "" message true)
+      (producer/publish (f/get-channel-pool) (f/get-exchange) "" message true)
       (with-redefs [queue/name (constantly (f/get-queue))]
         (consumer/start-subscribers (f/get-connection) "async-test" 5
                                     (fn [msg] (swap! consumed-messages conj msg))))
