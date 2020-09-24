@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.0.6] - 2020-09-24
+- Use a channel pool for rabbitmq publish
+
 ## [0.0.5] - 2020-09-22
 - Do not use select mode on channel when confirms are not required
 
