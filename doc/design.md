@@ -20,7 +20,8 @@ The original user message is added into a map containing additional metadata. Of
 All jobs start with `current-iteration : 0`. Every time the job fails, current-iteration is incremented and added to a delay queue for retry if it is less than `retry-max`.
 
 The exact delay queue to use will be calculated by using the equation:
-A
+
+
 `Timeout duration = (2 ^ current-iteration) * retry-timeout-ms`
 
 # Dead set
@@ -34,6 +35,7 @@ Consumer Acknowledgements are necessary for atleast-once delivery and cannot be 
 
 Publisher confirms, although a counter part of atleast-once, comes with a significant cost. We have seen it add as much as 32ms latencies for a 3 node configuration.
 
+Queues are mirrored to ALL nodes in a cluster. See: https://www.rabbitmq.com/ha.html
 
 # Performance
 

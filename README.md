@@ -1,6 +1,6 @@
 # async-worker
 
-An asynchronous job worker library for Clojure, implemented on RabbitMQ
+An asynchronous job worker library for Clojure, implemented on RabbitMQ. See the [design doc](doc/design.md) for details.
 
 ## Installation
 
