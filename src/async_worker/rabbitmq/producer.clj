@@ -1,11 +1,11 @@
 (ns async-worker.rabbitmq.producer
   (:require [async-worker.rabbitmq.channel :as channel]
             [async-worker.rabbitmq.exchange :as exchange]
+            [async-worker.rabbitmq.payload :as payload]
             [async-worker.rabbitmq.queue :as queue]
             [async-worker.utils :as u]
             [langohr.basic :as lb]
-            [langohr.confirm :as lconf]
-            [taoensso.nippy :as nippy]))
+            [langohr.confirm :as lconf]))
 
 (def confirmation-timeout-ms 1000)
 
@@ -14,10 +14,6 @@
    :persistent   true
    :mandatory    true
    :headers      {}})
-
-(defn- die-if-message-returned [p]
-  (when (realized? p)
-    (throw (ex-info "Message returned during publish" @p))))
 
 (defn publish
   "Tries to publish the message reliably. Retries 5 times with 100ms wait; throws exception if unsuccessful
@@ -29,21 +25,15 @@
   [channel-pool exchange routing-key message-payload confirm-publish?]
   (u/with-retry {:count 5 :wait 100}
     (channel/with-channel channel-pool [ch]
-      (let [return-promise (promise)
-            return-handler (lb/return-listener (fn [reply-code reply-text exchange routing-key properties body]
-                                                 (deliver return-promise {:reply-code reply-code
-                                                                          :reply-text reply-text})))]
-        (.addReturnListener ch return-handler)
-        (when confirm-publish?
-          (lconf/select ch))
-        (lb/publish ch
-                    exchange
-                    routing-key
-                    (nippy/freeze message-payload)
-                    properties-for-publish)
-        (when confirm-publish?
-          (lconf/wait-for-confirms-or-die ch confirmation-timeout-ms))
-        (die-if-message-returned return-promise)))))
+      (when confirm-publish?
+        (lconf/select ch))
+      (lb/publish ch
+                  exchange
+                  routing-key
+                  (payload/encode message-payload)
+                  properties-for-publish)
+      (when confirm-publish?
+        (lconf/wait-for-confirms-or-die ch confirmation-timeout-ms)))))
 
 (defn enqueue
   ([channel-pool namespace message]

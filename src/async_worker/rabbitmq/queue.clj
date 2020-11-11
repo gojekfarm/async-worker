@@ -4,7 +4,6 @@
             [langohr.channel :as lch]
             [langohr.exchange :as le]
             [langohr.queue :as lq]
-            [taoensso.nippy :as nippy]
             [camel-snake-kebab.core :as csk]
             [async-worker.utils :as u])
   (:refer-clojure :exclude [name]))

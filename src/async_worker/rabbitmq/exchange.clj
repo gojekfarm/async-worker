@@ -1,12 +1,9 @@
 (ns async-worker.rabbitmq.exchange
-  (:require [clojure.tools.logging :as log]
-            [langohr.basic :as lb]
+  (:refer-clojure :exclude [name declare])
+  (:require [camel-snake-kebab.core :as csk]
+            [clojure.tools.logging :as log]
             [langohr.channel :as lch]
-            [langohr.exchange :as le]
-            [langohr.queue :as lq]
-            [taoensso.nippy :as nippy]
-            [camel-snake-kebab.core :as csk])
-  (:refer-clojure :exclude [name declare]))
+            [langohr.exchange :as le]))
 
 (defn declare [connection exchange]
   (with-open [ch (lch/open connection)]

@@ -13,6 +13,7 @@
 (s/def ::subscriber-count int?)
 (s/def ::enable-confirms boolean?)
 (s/def ::channel-pool-size int?)
+(s/def ::return-listener fn?)
 (s/def ::rabbitmq
   (s/keys :req-un [::hosts
                    ::port
@@ -22,7 +23,8 @@
                    ::connection-timeout
                    ::subscriber-count]
           :opt-un [::enable-confirms
-                   ::channel-pool-size]))
+                   ::channel-pool-size
+                   ::return-listener]))
 
 (s/def ::job-name keyword?)
 (s/def ::handler-fn fn?)

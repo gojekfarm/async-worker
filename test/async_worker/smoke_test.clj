@@ -8,7 +8,8 @@
                              :rabbitmq  (merge f/connection-config
                                                {:subscriber-count  3
                                                 :enable-confirms   true
-                                                :channel-pool-size 5})
+                                                :channel-pool-size 5
+                                                :return-listener (fn [&_])})
                              :jobs      {:retry-job   {:retry-max        3
                                                        :retry-timeout-ms 10
                                                        :handler-fn       identity}

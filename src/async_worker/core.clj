@@ -16,7 +16,10 @@
   (spec/validate-config config)
   (let [rabbitmq-conn (conn/start-connection
                        (merge rabbitmq {:executor executor :automatically-recover true}))
-        channel-pool  (channel/create-pool rabbitmq-conn (or (:channel-pool-size rabbitmq) default-min-channels))
+        channel-pool  (channel/create-pool rabbitmq-conn
+                                           (or (:channel-pool-size rabbitmq)
+                                               default-min-channels)
+                                           {:return-listener (:return-listener rabbitmq)})
         exchange-name (exchange/name namespace)]
     (exchange/declare rabbitmq-conn exchange-name)
     (queue/init rabbitmq-conn namespace exchange-name)

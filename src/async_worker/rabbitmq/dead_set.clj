@@ -4,6 +4,7 @@
             [langohr.channel :as lch]
             [async-worker.rabbitmq.queue :as queue]
             [async-worker.rabbitmq.consumer :as consumer]
+            [async-worker.rabbitmq.payload :as payload]
             [async-worker.rabbitmq.producer :as producer]))
 
 (defn- dead-set-queue [namespace]
@@ -20,7 +21,7 @@
 (defn- read-without-ack [ch queue-name]
   (let [[meta payload] (lb/get ch queue-name false)]
     (when (some? payload)
-      [(consumer/convert-message payload) (:delivery-tag meta)])))
+      [(payload/decode payload) (:delivery-tag meta)])))
 
 (defn- reject-all [ch delivery-tags]
   (run! #(lb/reject ch % true) (remove nil? delivery-tags)))

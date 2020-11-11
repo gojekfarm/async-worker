@@ -1,5 +1,6 @@
 (ns async-worker.rabbitmq.producer-test
   (:require [async-worker.rabbitmq.producer :as producer]
+            [async-worker.rabbitmq.channel :as channel]
             [async-worker.fixtures :as f]
             [clojure.test :refer :all]
             [langohr.basic :as lb]
@@ -31,11 +32,15 @@
 
         (is (= message (nippy/thaw (:payload @args)))))))
 
-  (testing "publish throws exception for unroutable message"
-    (let [message {:hello :world}]
-      (is (thrown? Exception
-                   (producer/publish (f/get-channel-pool)
-                                     (f/get-exchange)
-                                     "wrong-routing-key"
-                                     message
-                                     true))))))
+  (testing "returned messages are picked up by the listener"
+    (let [message {:hello :world}
+          returned-arg (atom nil)
+          return-handler (fn [arg] (reset! returned-arg arg))
+          channel-pool (channel/create-pool (f/get-connection) 5 {:return-listener return-handler})]
+      (producer/publish channel-pool
+                        (f/get-exchange)
+                        "wrong-routing-key"
+                        message
+                        true)
+      (is (some? @returned-arg))
+      (is (= message (:body @returned-arg))))))

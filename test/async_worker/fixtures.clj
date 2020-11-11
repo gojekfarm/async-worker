@@ -51,7 +51,7 @@
     (connection/stop-connection *connection*)))
 
 (defn with-channel-pool [f]
-  (binding [*channel-pool* (channel/create-pool (get-connection) 5)]
+  (binding [*channel-pool* (channel/create-pool (get-connection) 5 {})]
     (f)))
 
 (defn with-rabbitmq-exchange [f]

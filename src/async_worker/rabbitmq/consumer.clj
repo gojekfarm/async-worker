@@ -1,31 +1,26 @@
 (ns async-worker.rabbitmq.consumer
-  (:require [clojure.tools.logging :as log]
+  (:require [async-worker.rabbitmq.payload :as payload]
+            [async-worker.rabbitmq.queue :as queue]
+            [clojure.tools.logging :as log]
             [langohr.basic :as lb]
             [langohr.channel :as lch]
-            [langohr.consumers :as lcons]
-            [taoensso.nippy :as nippy]
-            [async-worker.rabbitmq.queue :as queue]))
-
-(defn convert-message
-  "De-serializes the message payload (`payload`) using `nippy/thaw`"
-  [^bytes payload]
-  (nippy/thaw payload))
+            [langohr.consumers :as lcons]))
 
 (defn- ack-message
   [ch delivery-tag]
   (lb/ack ch delivery-tag))
 
 (defn process-message-from-queue [ch meta payload handler-fn]
-  (let [delivery-tag    (:delivery-tag meta)
-        message-payload (convert-message payload)]
-    (when message-payload
-      (log/infof "Processing message [%s] from RabbitMQ " message-payload)
+  (let [delivery-tag (:delivery-tag meta)
+        message      (payload/decode payload)]
+    (when message
+      (log/infof "Processing message [%s] from RabbitMQ " message)
       (try
-        (log/debug "Calling handler-fn with the message-payload - " message-payload " with retry count - " (:retry-count message-payload))
-        (handler-fn message-payload)
+        (log/debug "Calling handler-fn with the message - " message " with retry count - " (:retry-count message))
+        (handler-fn message)
         (ack-message ch delivery-tag)
         (catch Exception e
-          (log/error e "Error while processing message-payload from RabbitMQ")
+          (log/error e "Error while processing message from RabbitMQ")
           (lb/reject ch delivery-tag true)
           (throw e))))))
 
