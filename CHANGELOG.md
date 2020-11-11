@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.0.7] - 2020-11-11
+- Fix channel return listener leak
+
 ## [0.0.6] - 2020-09-24
 - Use a channel pool for rabbitmq publish
 
