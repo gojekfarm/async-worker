@@ -1,0 +1,11 @@
+language: clojure
+
+jdk:
+  - openjdk8
+  - openjdk11
+
+services:
+- docker
+
+stages:
+  - test
